@@ -1,0 +1,38 @@
+# ==========================================
+# EcoImage Project GitIgnore Configurations
+# ==========================================
+
+# Core Application Assets & Outputs
+output/
+assets/backgrounds/*
+!assets/backgrounds/.gitkeep
+assets/logo/*
+!assets/logo/logo.png
+!assets/logo/logo_white.png
+
+# Python Runtime Caches
+**/__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Operating System Files
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Virtual Environments
+.venv/
+venv/
+env/
+ENV/
+rc_env/
+
+# IDE / Editor Configurations
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp

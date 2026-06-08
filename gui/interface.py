@@ -22,23 +22,26 @@ class UnifiedWorkspace:
         self.ratio_var = tk.StringVar(value="1:1 (Kotak Tokopedia/Shopee)")
         self.bg_var = tk.StringVar(value="Putih Bersih Studio")
         self.center_var = tk.BooleanVar(value=True)
-        self.sticker_var = tk.StringVar(value="100%\\nOriginal!")
         self.watermark_var = tk.StringVar(value="")
 
-        # Dictionary to track row widgets: {item_id: {"status_lbl": Label, "btn_proc": Button, "btn_exp": Button}}
+        # Default starting values for the 3 Marketplace Badges
+        self.active_stickers = [
+            {"text": "100%\nORI", "bg_color": "#000000", "border_color": "#ffffff"},
+            {"text": "FREE\nONGKIR", "bg_color": "#000000", "border_color": "#ffffff"},
+            {"text": "", "bg_color": "#000000", "border_color": "#ffffff"}
+        ]
+
         self.row_widgets = {}
 
-        # 1. HEADER BRANDING TOP BAR (Bersih dari duplikasi pack)
+        # 1. HEADER BRANDING TOP BAR
         header = tk.Frame(self.root, bg=BG_DARK, height=50)
         header.pack(side=tk.TOP, fill=tk.X)
         header.pack_propagate(False)
         
-        # Penampung Logo + Teks di sisi kiri header
         brand_frame = tk.Frame(header, bg=BG_DARK)
         brand_frame.pack(side=tk.LEFT, padx=15, fill=tk.Y)
         
         try:
-            # Memuat logo putih kustom dan memperkecil secara proporsional ke 32x32 piksel
             logo_img = Image.open(os.path.join("assets", "logo", "logo_white.png"))
             logo_img = logo_img.resize((32, 32), Image.Resampling.LANCZOS)
             self.header_logo = ImageTk.PhotoImage(logo_img)
@@ -46,20 +49,17 @@ class UnifiedWorkspace:
             lbl_logo = tk.Label(brand_frame, image=self.header_logo, bg=BG_DARK)
             lbl_logo.pack(side=tk.LEFT, pady=9)
         except Exception as e:
-            # Fallback menggunakan emoji jika file logo fisik tidak ditemukan di direktori
             print(f"Gagal memuat logo header: {e}")
             tk.Label(brand_frame, text="🌱", font=FONT_TITLE, fg=TEXT_LIGHT, bg=BG_DARK).pack(side=tk.LEFT)
             
-        # Mengganti teks lama menjadi "EcoImage" sesuai instruksi kustom baru
         tk.Label(brand_frame, text="EcoImage", font=FONT_TITLE, fg=TEXT_LIGHT, bg=BG_DARK, padx=8).pack(side=tk.LEFT)
-
         tk.Button(header, text="❓ Panduan Fitur", command=help_cb, bg="#e74c3c", font=FONT_SECTION, fg="white", bd=0, padx=15, cursor="hand2").pack(side=tk.RIGHT, fill=tk.Y)
 
         # FRAME UTAMA WORKSPACE
         main_layout = tk.Frame(self.root, bg=BG_MAIN)
         main_layout.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
 
-        # 2. KOLOM KIRI: PANEL ANTRIAN FILE (WEB-CONVERTER ROW STYLE)
+        # 2. KOLOM KIRI: PANEL ANTRIAN FILE
         left_panel = tk.Frame(main_layout, width=420, bg=BG_CARD, bd=1, relief="solid", padx=10, pady=10)
         left_panel.pack(side=tk.LEFT, fill=tk.Y, padx=(0, 5))
         left_panel.pack_propagate(False)
@@ -71,13 +71,11 @@ class UnifiedWorkspace:
         tk.Button(btn_f, text="📁 Ambil Foto", command=self.open_file, bg=COLOR_PRIMARY, fg="white", font=FONT_REGULAR, bd=0, padx=10, pady=5, cursor="hand2").pack(side=tk.LEFT, expand=True, fill=tk.X, padx=(0, 2))
         tk.Button(btn_f, text="🚀 Proses Semua", command=self.cbs["run_queue"], bg=COLOR_BATCH, fg="white", font=FONT_REGULAR, bd=0, padx=10, pady=5, cursor="hand2").pack(side=tk.RIGHT, expand=True, fill=tk.X, padx=(2, 0))
 
-        # Drop Zone
         self.drop_zone = tk.Label(left_panel, text="➕ Seret & Lepas Folder/File ke Sini", font=FONT_ITALIC, bg=BG_PREVIEW, fg=TEXT_MUTED, bd=1, relief="groove", pady=12)
         self.drop_zone.pack(fill=tk.X, pady=5)
         self.drop_zone.drop_target_register(DND_FILES)
         self.drop_zone.dnd_bind('<<Drop>>', self.parse_drop_event)
 
-        # Scrollable Container for Rows
         scroll_container = tk.Frame(left_panel, bg=BG_PREVIEW, bd=1, relief="solid")
         scroll_container.pack(side=tk.TOP, fill=tk.BOTH, expand=True, pady=5)
         
@@ -92,7 +90,6 @@ class UnifiedWorkspace:
         self.queue_canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
 
-        # Global Actions Bottom
         self.btn_save = tk.Button(left_panel, text="💾 SIMPAN SEMUA HASIL EKSPOR", command=self.cbs["save_all"], bg=COLOR_SUCCESS, fg="white", font=FONT_SECTION, bd=0, pady=8, state="disabled", cursor="hand2")
         self.btn_save.pack(fill=tk.X, pady=(5, 0))
 
@@ -101,7 +98,7 @@ class UnifiedWorkspace:
         self.progress_bar = ttk.Progressbar(left_panel, maximum=100)
         self.progress_bar.pack(fill=tk.X, pady=(2, 0))
 
-        # 3. KOLOM TENGAH: MONITOR MONITOR UTAMA
+        # 3. KOLOM TENGAH: MONITOR UTAMA
         center_panel = tk.Frame(main_layout, bg=BG_MAIN, padx=10)
         center_panel.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 
@@ -120,8 +117,8 @@ class UnifiedWorkspace:
         style = ttk.Style()
         style.theme_use('clam')
         style.configure("TopMenu.TNotebook", background=BG_DARK, borderwidth=0, padding=0)
-        style.configure("TopMenu.TNotebook.Tab", font=FONT_SECTION, padding=[20, 8], background="#34495e", foreground=TEXT_LIGHT, borderwidth=0, focuscolor="")
-        style.map("TopMenu.TNotebook.Tab", background=[("selected", COLOR_PRIMARY)], foreground=[("selected", "white")], padding=[("selected", [20, 8])], expand=[("selected", [0, 0, 0, 0])])
+        style.configure("TopMenu.TNotebook.Tab", font=FONT_SECTION, padding=[15, 8], background="#34495e", foreground=TEXT_LIGHT, borderwidth=0, focuscolor="")
+        style.map("TopMenu.TNotebook.Tab", background=[("selected", COLOR_PRIMARY)], foreground=[("selected", "white")])
         style.configure("TFrame", background=BG_DARK)
 
         self.notebook = ttk.Notebook(right_panel, style="TopMenu.TNotebook")
@@ -139,23 +136,70 @@ class UnifiedWorkspace:
         self.bg_opt.pack(fill=tk.X, pady=4)
         tk.Checkbutton(tab_bg, text="Posisikan Otomatis di Tengah Pas", variable=self.center_var, fg=TEXT_LIGHT, bg=BG_DARK, selectcolor=BG_DARK, activebackground=BG_DARK, activeforeground=TEXT_LIGHT, font=FONT_REGULAR).pack(anchor="w", pady=15)
 
-        # TAB 2: BRANDING
+        # TAB 2: BRANDING (Updated to true Textareas for real line breaks)
         tab_brand = ttk.Frame(self.notebook, padding=10)
         self.notebook.add(tab_brand, text="🏷️ Elemen Brand")
-        tk.Label(tab_brand, text="Tulisan Teks Stiker Promo (Gunakan \\n):", fg=TEXT_LIGHT, bg=BG_DARK, font=FONT_REGULAR).pack(anchor="w", pady=(10, 0))
-        tk.Entry(tab_brand, textvariable=self.sticker_var, font=FONT_REGULAR, bg=BG_MAIN, fg=TEXT_DARK, bd=0).pack(fill=tk.X, pady=4)
-        tk.Label(tab_brand, text="Nama Watermark Pemilik Toko:", fg=TEXT_LIGHT, bg=BG_DARK, font=FONT_REGULAR).pack(anchor="w", pady=(10, 0))
+        
+        tk.Label(tab_brand, text="⚙️ KONFIGURASI STIKER PROMO (Maks 3)", fg=TEXT_LIGHT, bg=BG_DARK, font=FONT_SECTION).pack(anchor="w", pady=(5, 5))
+
+        self.sticker_inputs = []
+        for i in range(3):
+            f_stick = tk.LabelFrame(tab_brand, text=f"Stiker {i+1}", fg=TEXT_MUTED, bg=BG_DARK, font=FONT_REGULAR, padx=5, pady=5)
+            f_stick.pack(fill=tk.X, pady=3)
+            
+            init_val = self.active_stickers[i]["text"]
+            init_bg = self.active_stickers[i]["bg_color"]
+            
+            # Text area field instead of traditional Entry
+            tk.Label(f_stick, text="Teks:", fg=TEXT_LIGHT, bg=BG_DARK, font=FONT_REGULAR).grid(row=0, column=0, sticky="nw", pady=2)
+            txt_area = tk.Text(f_stick, font=FONT_REGULAR, bg=BG_MAIN, fg=TEXT_DARK, bd=0, width=14, height=2, wrap="none")
+            txt_area.insert("1.0", init_val)
+            txt_area.grid(row=0, column=1, padx=4, pady=2, sticky="ew")
+            
+            # Background Hex color entry field
+            tk.Label(f_stick, text="Warna:", fg=TEXT_LIGHT, bg=BG_DARK, font=FONT_REGULAR).grid(row=0, column=2, sticky="nw", pady=2)
+            bg_var = tk.StringVar(value=init_bg)
+            col_ent = tk.Entry(f_stick, textvariable=bg_var, font=FONT_REGULAR, bg=BG_MAIN, fg=TEXT_DARK, bd=0, width=8)
+            col_ent.grid(row=0, column=3, padx=4, pady=2, sticky="n")
+            
+            self.sticker_inputs.append({"text_widget": txt_area, "bg_var": bg_var})
+            
+            # KeyRelease catches actual text typing modifications inside the Textarea widget instantly
+            txt_area.bind("<KeyRelease>", lambda event: self.sync_stickers_and_refresh())
+            bg_var.trace_add("write", lambda *args: self.sync_stickers_and_refresh())
+
+        tk.Frame(tab_brand, height=1, bg=BORDER_COLOR).pack(fill=tk.X, pady=10)
+
+        tk.Label(tab_brand, text="Nama Watermark Pemilik Toko:", fg=TEXT_LIGHT, bg=BG_DARK, font=FONT_REGULAR).pack(anchor="w")
         tk.Entry(tab_brand, textvariable=self.watermark_var, font=FONT_REGULAR, bg=BG_MAIN, fg=TEXT_DARK, bd=0).pack(fill=tk.X, pady=4)
-        tk.Button(tab_brand, text="🧹 Bersihkan Semua Kolom Tulisan", command=self.clear_texts, bg="#e67e22", fg="white", bd=0, pady=6, font=FONT_REGULAR, cursor="hand2").pack(fill=tk.X, pady=25)
+        
+        tk.Button(tab_brand, text="🧹 Bersihkan Semua Kolom Tulisan", command=self.clear_texts, bg="#e67e22", fg="white", bd=0, pady=6, font=FONT_REGULAR, cursor="hand2").pack(fill=tk.X, pady=15)
 
         self._bind_traces()
 
+    def sync_stickers_and_refresh(self):
+        """Extracts text inputs directly from multi-line text areas cleanly."""
+        self.active_stickers = []
+        for inp in self.sticker_inputs:
+            # 1.0 to end-1c grabs text starting from row 1/char 0 while stripping Tkinter's internal extra blank line break
+            text_raw = inp["text_widget"].get("1.0", "end-1c").strip()
+            bg_color = inp["bg_var"].get().strip()
+            
+            if not bg_color.startswith("#") or len(bg_color) != 7:
+                bg_color = "#000000"
+                
+            if text_raw:
+                self.active_stickers.append({
+                    "text": text_raw,
+                    "bg_color": bg_color,
+                    "border_color": "#ffffff"
+                })
+        self.trigger_live_refresh()
+
     def add_item_row(self, item_id, filename):
-        """Spawns an isolated web-style row entry with separate action buttons."""
         row_frame = tk.Frame(self.queue_rows_frame, bg=BG_CARD, pady=6, padx=8, bd=1, relief="groove")
         row_frame.pack(fill=tk.X, pady=2, padx=2)
 
-        # Clickable File Meta area (triggers middle monitor preview selection)
         meta_click_area = tk.Frame(row_frame, bg=BG_CARD, cursor="hand2")
         meta_click_area.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         meta_click_area.bind("<Button-1>", lambda e, uid=item_id: self.cbs["preview"](uid))
@@ -168,7 +212,6 @@ class UnifiedWorkspace:
         lbl_status.pack(side=tk.TOP, fill=tk.X)
         lbl_status.bind("<Button-1>", lambda e, uid=item_id: self.cbs["preview"](uid))
 
-        # Inline Converter Action Buttons Panel
         actions_panel = tk.Frame(row_frame, bg=BG_CARD)
         actions_panel.pack(side=tk.RIGHT, fill=tk.Y)
 
@@ -178,16 +221,63 @@ class UnifiedWorkspace:
         btn_exp = tk.Button(actions_panel, text="Export", command=lambda: self.cbs["save_single"](item_id), bg=COLOR_SUCCESS, fg="white", font=("Arial", 9, "bold"), bd=0, padx=6, pady=3, state="disabled", cursor="hand2")
         btn_exp.pack(side=tk.LEFT, padx=2)
 
-        # Store widgets reference map to allow live status/button swapping from main thread
         self.row_widgets[item_id] = {
             "frame": row_frame,
             "status_lbl": lbl_status,
             "btn_proc": btn_proc,
             "btn_exp": btn_exp
         }
+    
+    def get_current_stickers_state(self):
+        """Helper to package clean values from text widgets into list arrays."""
+        state = []
+        for inp in self.sticker_inputs:
+            text_raw = inp["text_widget"].get("1.0", "end-1c").strip()
+            bg_color = inp["bg_var"].get().strip()
+            if not bg_color.startswith("#") or len(bg_color) != 7:
+                bg_color = "#000000"
+            state.append({"text": text_raw, "bg_color": bg_color, "border_color": "#ffffff"})
+        return state
+
+    def load_image_data_to_editor(self, data_dict):
+        """Completely overrides text boxes, canvas dropmenus, and sliders with the targets specific settings data."""
+        # 1. Break ALL background write trace triggers to avoid cross-fire render collisions
+        self.res_var.trace_remove("write", self._trace_res)
+        self.ratio_var.trace_remove("write", self._trace_ratio)
+        self.bg_var.trace_remove("write", self._trace_bg)
+        self.center_var.trace_remove("write", self._trace_center)
+        self.watermark_var.trace_remove("write", self._trace_wm)
+        
+        for inp in self.sticker_inputs:
+            inp["bg_var"].trace_remove("write", inp["_bg_trace"])
+            inp["text_widget"].bind("<KeyRelease>", "")
+
+        # 2. Load background configuration details into view
+        self.res_var.set(data_dict["resolution"])
+        self.ratio_var.set(data_dict["ratio"])
+        self.bg_var.set(data_dict["background"])
+        self.center_var.set(data_dict["centering"])
+
+        # 3. Load marketplace branding elements into view
+        stickers_list = data_dict["stickers"]
+        for i in range(3):
+            inp = self.sticker_inputs[i]
+            inp["text_widget"].delete("1.0", "end")
+            
+            if i < len(stickers_list):
+                inp["text_widget"].insert("1.0", stickers_list[i]["text"])
+                inp["bg_var"].set(stickers_list[i]["bg_color"])
+            else:
+                inp["bg_var"].set("#000000")
+
+        self.watermark_var.set(data_dict["watermark"])
+
+        # 4. Re-establish stable background listeners
+        self._bind_traces()
+        for inp in self.sticker_inputs:
+            inp["text_widget"].bind("<KeyRelease>", lambda event: self.sync_stickers_and_refresh())
 
     def update_item_row_state(self, item_id, status_text, state_mode="ready"):
-        """Dynamically updates the row layout configuration like a free converter site."""
         if item_id not in self.row_widgets: return
         wdg = self.row_widgets[item_id]
         
@@ -203,12 +293,15 @@ class UnifiedWorkspace:
             wdg["btn_proc"].config(text="Retry", state="normal", bg=COLOR_PRIMARY)
 
     def _bind_traces(self):
-        self.res_var.trace_add("write", lambda *args: self.trigger_live_refresh())
-        self.ratio_var.trace_add("write", lambda *args: self.trigger_live_refresh())
-        self.bg_var.trace_add("write", lambda *args: self.trigger_live_refresh())
-        self.center_var.trace_add("write", lambda *args: self.trigger_live_refresh())
-        self.sticker_var.trace_add("write", lambda *args: self.trigger_live_refresh())
-        self.watermark_var.trace_add("write", lambda *args: self.trigger_live_refresh())
+        """Binds named traces allowing clean systematic disconnect loops during state switches."""
+        self._trace_res = self.res_var.trace_add("write", lambda *args: self.trigger_live_refresh())
+        self._trace_ratio = self.ratio_var.trace_add("write", lambda *args: self.trigger_live_refresh())
+        self._trace_bg = self.bg_var.trace_add("write", lambda *args: self.trigger_live_refresh())
+        self._trace_center = self.center_var.trace_add("write", lambda *args: self.trigger_live_refresh())
+        self._trace_wm = self.watermark_var.trace_add("write", lambda *args: self.sync_stickers_and_refresh())
+        
+        for inp in self.sticker_inputs:
+            inp["_bg_trace"] = inp["bg_var"].trace_add("write", lambda *args: self.sync_stickers_and_refresh())
 
     def open_file(self):
         paths = filedialog.askopenfilenames(filetypes=[("Images", "*.jpg *.jpeg *.png")])
@@ -227,15 +320,15 @@ class UnifiedWorkspace:
         if paths: self.cbs["drop"](paths)
 
     def clear_texts(self):
-        self.sticker_var.set("")
+        for inp in self.sticker_inputs:
+            inp["text_widget"].delete("1.0", "end")
         self.watermark_var.set("")
+        self.sync_stickers_and_refresh()
 
     def trigger_live_refresh(self):
-        # Fallback callback proxy to allow settings configuration trace updates on focused frame
         if hasattr(self.root, 'wf_controller') and self.root.wf_controller.active_preview_id:
             try:
                 val_res = self.res_var.get()
-                ratio_clean = self.ratio_var.get().split(" ")[0]
                 if val_res:
                     self.cbs["process_single"](self.root.wf_controller.active_preview_id, silent_refresh=True)
             except ValueError: pass

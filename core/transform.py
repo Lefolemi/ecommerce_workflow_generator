@@ -9,10 +9,11 @@ from core.engines.shadow import apply_realistic_shadow
 from core.engines.sticker import apply_promo_sticker
 from core.engines.watermark import apply_shop_watermark
 
-def process_to_packshot(pil_image, max_target_size=1000, aspect_ratio_str="1:1", do_centering=True, bg_template_path=None, sticker_text="", watermark_text=""):
+def process_to_packshot(pil_image, max_target_size=1000, aspect_ratio_str="1:1", do_centering=True, bg_template_path=None, stickers_list=None, watermark_text=""):
     """
     Orkestrator Utama: Mengatur konfigurasi geometri kanvas, skala objek, 
     dan menyusun komposisi berlapis (Sandwich Layer) hasil akhir foto katalog.
+    Menampung data stiker promosi dalam bentuk struktur list/array.
     """
     np_image = np.array(pil_image.convert("RGBA"))
     alpha = np_image[:, :, 3]
@@ -75,7 +76,9 @@ def process_to_packshot(pil_image, max_target_size=1000, aspect_ratio_str="1:1",
     # 8. Layer 4 & 5: Marketing Elements Overlay (Stiker Diskon & Watermark Pemilik Toko)
     # Menggunakan font sistem standard bawaan OS sebagai default parameter
     font_target = "arial.ttf"
-    canvas = apply_promo_sticker(canvas, sticker_text, font_target)
+    
+    # Mengirimkan array data stiker terstruktur ke dalam sub-engine stiker
+    canvas = apply_promo_sticker(canvas, stickers_list, font_target)
     canvas = apply_shop_watermark(canvas, watermark_text, font_target)
     
     return canvas

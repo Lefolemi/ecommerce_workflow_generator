@@ -89,22 +89,54 @@ class WorkflowController:
                 continue
                 
             filename = os.path.basename(full_path)
-            item_id = os.urandom(4).hex() # Secure isolated ID keys
+            item_id = os.urandom(4).hex()
             
-            # Spawn web row elements dynamically inside the canvas frame
             self.gui.add_item_row(item_id, filename)
             
+            # FIXED: Added default background canvas variables uniquely to each image profile
             self.queue_registry[item_id] = {
                 "absolute_path": full_path,
                 "no_bg_cache": None,
                 "final_result": None,
-                "status": "Siap"
+                "status": "Siap",
+                "resolution": "1000",
+                "ratio": "1:1 (Kotak Tokopedia/Shopee)",
+                "background": "Putih Bersih Studio",
+                "centering": True,
+                "stickers": [
+                    {"text": "100%\nORI", "bg_color": "#000000", "border_color": "#ffffff"},
+                    {"text": "FREE\nONGKIR", "bg_color": "#ee4d2d", "border_color": "#ffffff"},
+                    {"text": "", "bg_color": "#2ecc71", "border_color": "#ffffff"}
+                ],
+                "watermark": ""
             }
             
         self.gui.update_progress(0, 100, f"⏳ Berhasil menambah {len(all_files)} foto.")
 
+    def handle_switch_preview_target(self, selected_row_id):
+        """Saves current canvas settings/stickers data and paints the incoming target configuration profiles."""
+        # 1. Save the active UI states back into the old data block before leaving it
+        if self.active_preview_id and self.active_preview_id in self.queue_registry:
+            old_data = self.queue_registry[self.active_preview_id]
+            old_data["resolution"] = self.gui.res_var.get()
+            old_data["ratio"] = self.gui.ratio_var.get()
+            old_data["background"] = self.gui.bg_var.get()
+            old_data["centering"] = self.gui.center_var.get()
+            old_data["stickers"] = self.gui.get_current_stickers_state()
+            old_data["watermark"] = self.gui.watermark_var.get()
+
+        # 2. Re-route tracking coordinates to the targeted file array
+        self.active_preview_id = selected_row_id
+        item_data = self.queue_registry[selected_row_id]
+        
+        # 3. FIXED: Overwrite ALL controls on the panel desk with the values saved for this file
+        self.gui.load_image_data_to_editor(item_data)
+        
+        # 4. Display the pre-rendered image asset
+        self.gui.show_result(item_data["final_result"])
+
     def execute_single_row_pipeline(self, item_id, silent_refresh=False):
-        """Processes a single file. Maps 'Proses' to 'Re-Bake' and activates individual 'Export' on success."""
+        """Processes a single file using its own dedicated workspace configuration metrics."""
         item_data = self.queue_registry[item_id]
         
         def _worker():
@@ -112,30 +144,47 @@ class WorkflowController:
                 if not silent_refresh:
                     self.root.after(0, lambda: self.gui.update_item_row_state(item_id, "⏳ Proses...", "processing"))
                 
-                # Check background cache to avoid repeating segmentation processing steps
                 if item_data["no_bg_cache"] is None:
                     clean_img = standardize_input(item_data["absolute_path"])
                     item_data["no_bg_cache"] = remove_background(clean_img)
                     del clean_img
 
-                res = int(self.gui.res_var.get())
-                ratio = self.gui.ratio_var.get().split(" ")[0]
-                center = self.gui.center_var.get()
-                bg_path = self._get_bg_path_by_choice(self.gui.bg_var.get())
-                sticker_txt = self.gui.sticker_var.get()
-                watermark_txt = self.gui.watermark_var.get()
+                # FIXED: Extract geometric values directly from the image data block context
+                if not silent_refresh:
+                    res = int(item_data["resolution"])
+                    ratio = item_data["ratio"].split(" ")[0]
+                    center = item_data["centering"]
+                    bg_path = self._get_bg_path_by_choice(item_data["background"])
+                    stickers_list = item_data["stickers"]
+                    watermark_txt = item_data["watermark"]
+                else:
+                    # If actively drawing/typing on sliders, catch the live values instantly
+                    res = int(self.gui.res_var.get())
+                    ratio = self.gui.ratio_var.get().split(" ")[0]
+                    center = self.gui.center_var.get()
+                    bg_path = self._get_bg_path_by_choice(self.gui.bg_var.get())
+                    stickers_list = self.gui.get_current_stickers_state()
+                    watermark_txt = self.gui.watermark_var.get()
+                    
+                    # Update local state mapping blocks
+                    item_data["resolution"] = str(res)
+                    item_data["ratio"] = self.gui.ratio_var.get()
+                    item_data["background"] = self.gui.bg_var.get()
+                    item_data["centering"] = center
+                    item_data["stickers"] = stickers_list
+                    item_data["watermark"] = watermark_txt
                 
                 final_result = process_to_packshot(
                     item_data["no_bg_cache"], res, ratio, center, 
-                    bg_template_path=bg_path, sticker_text=sticker_txt, watermark_text=watermark_txt
+                    bg_template_path=bg_path, 
+                    stickers_list=stickers_list, 
+                    watermark_text=watermark_txt
                 )
                 item_data["final_result"] = final_result
                 item_data["status"] = "✨ Selesai"
 
-                # UI Inline buttons swap swap state rules
                 self.root.after(0, lambda: self.gui.update_item_row_state(item_id, "✨ Selesai", "completed"))
                 
-                # Instantly draw output frame if active selection matches this row sequence
                 if self.active_preview_id == item_id or self.active_preview_id is None:
                     self.active_preview_id = item_id
                     self.root.after(0, lambda img=final_result: self.gui.show_result(img))
@@ -147,7 +196,7 @@ class WorkflowController:
                 self.root.after(0, lambda: self.gui.update_item_row_state(item_id, "❌ Gagal", "failed"))
 
         if silent_refresh:
-            _worker() # Immediate evaluation context for slider configuration write trace callbacks
+            _worker()
         else:
             threading.Thread(target=_worker, daemon=True).start()
 
@@ -162,14 +211,6 @@ class WorkflowController:
             self.root.after(0, lambda: messagebox.showinfo("Selesai", "Batch conversion process done!"))
             
         threading.Thread(target=_batch_worker, daemon=True).start()
-
-    def handle_switch_preview_target(self, selected_row_id):
-        """Highlights row container profile and presents the processed data context onto monitor panel."""
-        self.active_preview_id = selected_row_id
-        item_data = self.queue_registry[selected_row_id]
-        
-        # Enforce dynamic container border background visual feedback context modifications here if desired
-        self.gui.show_result(item_data["final_result"])
 
     def handle_save_single(self, item_id):
         """

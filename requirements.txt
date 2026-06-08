@@ -1,6 +1,15 @@
+# ====================================================================
+# EcoImage Core Dependencies
+# ====================================================================
+
+# Computer Vision & Data Manipulation
 opencv-python>=4.8.0
 numpy>=1.24.0
 Pillow>=10.0.0
+
+# AI Background Removal Pipeline (U2-Net)
 rembg>=2.0.50
 onnxruntime>=1.16.0
+
+# GUI Extensions
 tkinterdnd2>=0.3.0

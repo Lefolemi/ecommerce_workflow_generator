@@ -4,7 +4,7 @@ import cv2
 import numpy as np
 from PIL import Image
 
-# Import terpisah dari subfolder sub-engines baru
+# Import terpisah dari subfolder sub-engines kustom
 from core.engines.shadow import apply_realistic_shadow
 from core.engines.sticker import apply_promo_sticker
 from core.engines.watermark import apply_shop_watermark
@@ -13,7 +13,7 @@ def process_to_packshot(pil_image, max_target_size=1000, aspect_ratio_str="1:1",
     """
     Orkestrator Utama: Mengatur konfigurasi geometri kanvas, skala objek, 
     dan menyusun komposisi berlapis (Sandwich Layer) hasil akhir foto katalog.
-    Menampung data stiker promosi dalam bentuk struktur list/array.
+    Menerima objek pil_image transparan (RGBA) yang telah melalui penyesuaian pencahayaan.
     """
     np_image = np.array(pil_image.convert("RGBA"))
     alpha = np_image[:, :, 3]
@@ -74,10 +74,7 @@ def process_to_packshot(pil_image, max_target_size=1000, aspect_ratio_str="1:1",
     canvas.paste(resized_obj, offset, resized_obj)
     
     # 8. Layer 4 & 5: Marketing Elements Overlay (Stiker Diskon & Watermark Pemilik Toko)
-    # Menggunakan font sistem standard bawaan OS sebagai default parameter
     font_target = "arial.ttf"
-    
-    # Mengirimkan array data stiker terstruktur ke dalam sub-engine stiker
     canvas = apply_promo_sticker(canvas, stickers_list, font_target)
     canvas = apply_shop_watermark(canvas, watermark_text, font_target)
     

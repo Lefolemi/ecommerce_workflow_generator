@@ -8,6 +8,8 @@ import io
 from tkinter import messagebox, filedialog
 from tkinterdnd2 import TkinterDnD
 
+# FIXED: Menghapus is_low_light karena blending sekarang diatur otomatis secara internal
+from core.engines.enhance import apply_lol_enhancement
 from gui.interface import UnifiedWorkspace
 from core.engines.preprocess import standardize_input
 from core.engines.segmentor import remove_background
@@ -115,7 +117,6 @@ class WorkflowController:
 
     def handle_switch_preview_target(self, selected_row_id):
         """Saves current canvas settings/stickers data and paints the incoming target configuration profiles."""
-        # 1. Save the active UI states back into the old data block before leaving it
         if self.active_preview_id and self.active_preview_id in self.queue_registry:
             old_data = self.queue_registry[self.active_preview_id]
             old_data["resolution"] = self.gui.res_var.get()
@@ -125,14 +126,10 @@ class WorkflowController:
             old_data["stickers"] = self.gui.get_current_stickers_state()
             old_data["watermark"] = self.gui.watermark_var.get()
 
-        # 2. Re-route tracking coordinates to the targeted file array
         self.active_preview_id = selected_row_id
         item_data = self.queue_registry[selected_row_id]
         
-        # 3. FIXED: Overwrite ALL controls on the panel desk with the values saved for this file
         self.gui.load_image_data_to_editor(item_data)
-        
-        # 4. Display the pre-rendered image asset
         self.gui.show_result(item_data["final_result"])
 
     def execute_single_row_pipeline(self, item_id, silent_refresh=False):
@@ -145,11 +142,16 @@ class WorkflowController:
                     self.root.after(0, lambda: self.gui.update_item_row_state(item_id, "⏳ Proses...", "processing"))
                 
                 if item_data["no_bg_cache"] is None:
+                    # 1. Jalankan pra-proses pembersihan format & ukuran dasar
                     clean_img = standardize_input(item_data["absolute_path"])
+                    
+                    # FIXED: Penyesuaian pencahayaan adaptif otomatis dipanggil di sini tanpa if-statement biner
+                    clean_img = apply_lol_enhancement(clean_img)
+                        
+                    # 3. Masukkan gambar yang sudah optimal secara pencahayaan ke Segmentor AI
                     item_data["no_bg_cache"] = remove_background(clean_img)
                     del clean_img
 
-                # FIXED: Extract geometric values directly from the image data block context
                 if not silent_refresh:
                     res = int(item_data["resolution"])
                     ratio = item_data["ratio"].split(" ")[0]
@@ -158,7 +160,6 @@ class WorkflowController:
                     stickers_list = item_data["stickers"]
                     watermark_txt = item_data["watermark"]
                 else:
-                    # If actively drawing/typing on sliders, catch the live values instantly
                     res = int(self.gui.res_var.get())
                     ratio = self.gui.ratio_var.get().split(" ")[0]
                     center = self.gui.center_var.get()
@@ -166,7 +167,6 @@ class WorkflowController:
                     stickers_list = self.gui.get_current_stickers_state()
                     watermark_txt = self.gui.watermark_var.get()
                     
-                    # Update local state mapping blocks
                     item_data["resolution"] = str(res)
                     item_data["ratio"] = self.gui.ratio_var.get()
                     item_data["background"] = self.gui.bg_var.get()
@@ -213,10 +213,6 @@ class WorkflowController:
         threading.Thread(target=_batch_worker, daemon=True).start()
 
     def handle_save_single(self, item_id):
-        """
-        Membuka jendela dialog penyimpanan interaktif agar pengguna bisa 
-        memilih sendiri direktori folder tujuan dan nama file ekspor hasil.
-        """
         item_data = self.queue_registry[item_id]
         if not item_data["final_result"] or item_data["status"] != "✨ Selesai":
             return
@@ -224,7 +220,6 @@ class WorkflowController:
         orig_name = os.path.basename(item_data["absolute_path"])
         default_name = f"PRO_{os.path.splitext(orig_name)[0]}.jpg"
 
-        # Membuka Windows/Mac native file dialog untuk menanyakan lokasi penyimpanan
         save_path = filedialog.asksaveasfilename(
             initialfile=default_name,
             defaultextension=".jpg",
@@ -232,31 +227,21 @@ class WorkflowController:
             title="Pilih Lokasi untuk Ekspor Foto Produk"
         )
 
-        # Jika pengguna tidak membatalkan proses (menekan Cancel)
         if save_path:
             try:
-                # Ekspor dengan kompresi kualitas 95% murni ke jalur yang dipilih pengguna
                 item_data["final_result"].convert("RGB").save(save_path, "JPEG", quality=95, optimize=True)
-                
-                # Ambil hanya nama file akhir untuk kebutuhan notifikasi pop-up yang ringkas
                 just_filename = os.path.basename(save_path)
                 messagebox.showinfo("Sukses Ekspor", f"Berhasil menyimpan file:\n{just_filename}")
             except Exception as e:
                 messagebox.showerror("Gagal Menyimpan", f"Terjadi kesalahan saat menyimpan file:\n{e}")
 
     def handle_save_all(self):
-        """
-        Mengompresi seluruh matriks gambar yang berstatus selesai menjadi 
-        satu file ZIP tunggal melalui dialog penyimpanan interaktif.
-        """
-        # Saring antrean untuk memastikan ada data yang siap diekspor
         finished_items = [data for data in self.queue_registry.values() if data["final_result"] and data["status"] == "✨ Selesai"]
         
         if not finished_items:
             messagebox.showwarning("Ekspor Gagal", "Belum ada foto produk yang selesai diproses!")
             return
 
-        # Buka dialog untuk menentukan nama dan lokasi penyimpanan file ZIP
         save_path = filedialog.asksaveasfilename(
             initialfile="Katalog_Produk_UMKM.zip",
             defaultextension=".zip",
@@ -266,7 +251,6 @@ class WorkflowController:
 
         if save_path:
             try:
-                # Sediakan buffer memori RAM sementara untuk menulis data ZIP
                 zip_buffer = io.BytesIO()
                 
                 with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
@@ -274,16 +258,13 @@ class WorkflowController:
                         orig_name = os.path.basename(data["absolute_path"])
                         output_name = f"PRO_{os.path.splitext(orig_name)[0]}.jpg"
                         
-                        # Konversi PIL Image ke format biner JPEG di dalam memori
                         img_buffer = io.BytesIO()
                         data["final_result"].convert("RGB").save(img_buffer, "JPEG", quality=95, optimize=True)
                         img_buffer.seek(0)
                         
-                        # Masukkan file JPEG biner tersebut ke dalam arsip ZIP
                         zip_file.writestr(output_name, img_buffer.read())
                         img_buffer.close()
 
-                # Tulis isi buffer ZIP dari RAM murni ke dalam file fisik di disk
                 with open(save_path, "wb") as f:
                     f.write(zip_buffer.getvalue())
                 
@@ -297,12 +278,9 @@ class WorkflowController:
                 messagebox.showerror("Gagal Membuat ZIP", f"Terjadi kesalahan kompresi arsip:\n{e}")
 
     def run(self):
-        """Memulai siklus hidup loop utama window Tkinter dengan kondisi maximized."""
         try:
-            # Untuk Windows OS, perintah ini akan memaksimalkan jendela secara penuh
             self.root.state('zoomed')
         except tk.TclError:
-            # Fallback untuk Linux / macOS jika perintah 'zoomed' tidak dikenali sistem
             self.root.attributes('-zoomed', True)
             
         self.root.mainloop()

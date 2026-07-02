@@ -9,7 +9,7 @@ from core.engines.shadow import apply_realistic_shadow
 from core.engines.sticker import apply_promo_sticker
 from core.engines.watermark import apply_shop_watermark
 
-def process_to_packshot(pil_image, max_target_size=1000, aspect_ratio_str="1:1", do_centering=True, bg_template_path=None, stickers_list=None, watermark_text=""):
+def process_to_packshot(pil_image, max_target_size=1000, aspect_ratio_str="1:1", do_centering=True, bg_template_path=None, stickers_list=None, watermark_text="", custom_bg_color="#ffffff"):
     """
     Orkestrator Utama: Mengatur konfigurasi geometri kanvas, skala objek, 
     dan menyusun komposisi berlapis (Sandwich Layer) hasil akhir foto katalog.
@@ -53,7 +53,12 @@ def process_to_packshot(pil_image, max_target_size=1000, aspect_ratio_str="1:1",
         canvas = Image.open(bg_template_path).convert("RGB")
         canvas = canvas.resize((canvas_w, canvas_h), Image.Resampling.LANCZOS)
     else:
-        canvas = Image.new("RGB", (canvas_w, canvas_h), (255, 255, 255))
+        # Konversi warna String Hex (#ffffff) ke format Tuple RGB tuple(R, G, B)
+        hex_str = custom_bg_color.lstrip('#')
+        rgb_tuple = tuple(int(hex_str[i:i+2], 16) for i in (0, 2, 4))
+        
+        # Buat kanvas kosong studio berdasarkan warna pilihan pengguna
+        canvas = Image.new("RGB", (canvas_w, canvas_h), rgb_tuple)
     
     # 5. Spatial Positioning Offsets (Centering Logic via Image Moments)
     if do_centering:

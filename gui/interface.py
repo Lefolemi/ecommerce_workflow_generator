@@ -1,33 +1,35 @@
 # gui/interface.py
 import os
 import tkinter as tk
-from tkinter import filedialog, ttk
+from tkinter import filedialog, ttk, colorchooser
 from tkinterdnd2 import DND_FILES
 from PIL import Image, ImageTk
 from gui.config import *
 
 class UnifiedWorkspace:
-    def __init__(self, root, upload_cb, process_single_cb, run_queue_cb, save_all_cb, save_single_cb, drop_cb, preview_item_cb, help_cb):
+    def __init__(self, root, upload_cb, process_single_cb, run_queue_cb, save_all_cb, save_single_cb, drop_cb, preview_item_cb, help_cb, delete_cb):
         self.root = root
         self.root.title("Aplikasi Studio Desain Produk UMKM - Unified Edition")
         self.root.geometry("1400x800")
         
         self.cbs = {
             "upload": upload_cb, "process_single": process_single_cb, "run_queue": run_queue_cb,
-            "save_all": save_all_cb, "save_single": save_single_cb, "drop": drop_cb, "preview": preview_item_cb
+            "save_all": save_all_cb, "save_single": save_single_cb, "drop": drop_cb, "preview": preview_item_cb,
+            "delete": delete_cb
         }
         
         # STATE REGISTRY GLOBAL
         self.res_var = tk.StringVar(value="1000")
         self.ratio_var = tk.StringVar(value="1:1 (Kotak Tokopedia/Shopee)")
-        self.bg_var = tk.StringVar(value="Putih Bersih Studio")
+        self.bg_var = tk.StringVar(value="Bersih Studio")
+        self.bg_color_hex = tk.StringVar(value="#ffffff")
         self.center_var = tk.BooleanVar(value=True)
         self.watermark_var = tk.StringVar(value="")
 
-        # Default starting values for the 3 Marketplace Badges
+        # Default starting values for the 3 Marketplace Badges (Semua kosong & hitam)
         self.active_stickers = [
-            {"text": "100%\nORI", "bg_color": "#000000", "border_color": "#ffffff"},
-            {"text": "FREE\nONGKIR", "bg_color": "#000000", "border_color": "#ffffff"},
+            {"text": "", "bg_color": "#000000", "border_color": "#ffffff"},
+            {"text": "", "bg_color": "#000000", "border_color": "#ffffff"},
             {"text": "", "bg_color": "#000000", "border_color": "#ffffff"}
         ]
 
@@ -129,14 +131,25 @@ class UnifiedWorkspace:
         self.notebook.add(tab_bg, text="🖼️ Atur Latar")
         tk.Label(tab_bg, text="Ketajaman Gambar (Pixel):", fg=TEXT_LIGHT, bg=BG_DARK, font=FONT_REGULAR).pack(anchor="w", pady=(10, 0))
         tk.Spinbox(tab_bg, from_=400, to=4000, increment=100, textvariable=self.res_var, font=FONT_REGULAR, bg=BG_MAIN, fg=TEXT_DARK, bd=0).pack(fill=tk.X, pady=4)
+        
         tk.Label(tab_bg, text="Bentuk Ukuran Kanvas:", fg=TEXT_LIGHT, bg=BG_DARK, font=FONT_REGULAR).pack(anchor="w", pady=(10, 0))
         ttk.Combobox(tab_bg, textvariable=self.ratio_var, values=["1:1 (Kotak Tokopedia/Shopee)", "4:3 (Standar HP)", "16:9 (Memanjang Landscape)"], state="readonly").pack(fill=tk.X, pady=4)
+        
         tk.Label(tab_bg, text="Suasana Latar Belakang:", fg=TEXT_LIGHT, bg=BG_DARK, font=FONT_REGULAR).pack(anchor="w", pady=(10, 0))
         self.bg_opt = ttk.Combobox(tab_bg, textvariable=self.bg_var, state="readonly")
         self.bg_opt.pack(fill=tk.X, pady=4)
+        self.bg_opt.bind("<<ComboboxSelected>>", self._on_bg_style_changed)
+        
+        # Panel Kustom Warna Kanvas Bersih Studio
+        self.f_bg_color = tk.Frame(tab_bg, bg=BG_DARK)
+        tk.Label(self.f_bg_color, text="Warna Studio:", fg=TEXT_LIGHT, bg=BG_DARK, font=FONT_REGULAR).pack(side=tk.LEFT, padx=(0, 10))
+        self.btn_bg_color = tk.Button(self.f_bg_color, bg="#ffffff", width=6, height=1, bd=1, relief="raised", cursor="hand2", command=self.choose_canvas_color)
+        self.btn_bg_color.pack(side=tk.LEFT)
+        self.f_bg_color.pack(fill=tk.X, pady=4)
+
         tk.Checkbutton(tab_bg, text="Posisikan Otomatis di Tengah Pas", variable=self.center_var, fg=TEXT_LIGHT, bg=BG_DARK, selectcolor=BG_DARK, activebackground=BG_DARK, activeforeground=TEXT_LIGHT, font=FONT_REGULAR).pack(anchor="w", pady=15)
 
-        # TAB 2: BRANDING (Updated to true Textareas for real line breaks)
+        # TAB 2: BRANDING (Updated with true Textareas & Native Color Picker)
         tab_brand = ttk.Frame(self.notebook, padding=10)
         self.notebook.add(tab_brand, text="🏷️ Elemen Brand")
         
@@ -150,21 +163,26 @@ class UnifiedWorkspace:
             init_val = self.active_stickers[i]["text"]
             init_bg = self.active_stickers[i]["bg_color"]
             
-            # Text area field instead of traditional Entry
+            # Text area field
             tk.Label(f_stick, text="Teks:", fg=TEXT_LIGHT, bg=BG_DARK, font=FONT_REGULAR).grid(row=0, column=0, sticky="nw", pady=2)
             txt_area = tk.Text(f_stick, font=FONT_REGULAR, bg=BG_MAIN, fg=TEXT_DARK, bd=0, width=14, height=2, wrap="none")
             txt_area.insert("1.0", init_val)
             txt_area.grid(row=0, column=1, padx=4, pady=2, sticky="ew")
             
-            # Background Hex color entry field
+            # Color picker button trigger block
             tk.Label(f_stick, text="Warna:", fg=TEXT_LIGHT, bg=BG_DARK, font=FONT_REGULAR).grid(row=0, column=2, sticky="nw", pady=2)
             bg_var = tk.StringVar(value=init_bg)
-            col_ent = tk.Entry(f_stick, textvariable=bg_var, font=FONT_REGULAR, bg=BG_MAIN, fg=TEXT_DARK, bd=0, width=8)
-            col_ent.grid(row=0, column=3, padx=4, pady=2, sticky="n")
             
-            self.sticker_inputs.append({"text_widget": txt_area, "bg_var": bg_var})
+            btn_color = tk.Button(f_stick, bg=init_bg, width=4, height=1, bd=1, relief="raised", cursor="hand2")
+            btn_color.grid(row=0, column=3, padx=4, pady=2, sticky="n")
+            btn_color.config(command=lambda b=btn_color, v=bg_var: self.choose_sticker_color(b, v))
             
-            # KeyRelease catches actual text typing modifications inside the Textarea widget instantly
+            self.sticker_inputs.append({
+                "text_widget": txt_area, 
+                "bg_var": bg_var,
+                "color_btn": btn_color
+            })
+            
             txt_area.bind("<KeyRelease>", lambda event: self.sync_stickers_and_refresh())
             bg_var.trace_add("write", lambda *args: self.sync_stickers_and_refresh())
 
@@ -177,11 +195,45 @@ class UnifiedWorkspace:
 
         self._bind_traces()
 
+    def _on_bg_style_changed(self, event=None):
+        """Menampilkan tombol warna hanya jika opsi Bersih Studio aktif, atau memicu upload jika kustom dipilih."""
+        choice = self.bg_var.get()
+        if choice == "Bersih Studio":
+            self.f_bg_color.pack(fill=tk.X, pady=4, after=self.bg_opt)
+        else:
+            self.f_bg_color.pack_forget()
+
+        if choice == "Kustom Gambar Latar..." and hasattr(self.root, 'wf_controller'):
+            self.root.wf_controller.handle_upload_custom_bg()
+            
+        self.trigger_live_refresh()
+
+    def choose_canvas_color(self):
+        """Membuka dialog warna untuk mengubah latar belakang Bersih Studio."""
+        color_code = colorchooser.askcolor(initialcolor=self.bg_color_hex.get())[1]
+        if color_code:
+            self.bg_color_hex.set(color_code)
+            self.btn_bg_color.config(bg=color_code)
+            self.trigger_live_refresh()
+
+    def choose_sticker_color(self, button_widget, string_var):
+        """Membuka native color chooser dialog dan memperbarui warna latar tombol."""
+        color_code = colorchooser.askcolor(initialcolor=string_var.get())[1]
+        if color_code:
+            string_var.set(color_code)
+            button_widget.config(bg=color_code)
+
+    def update_color_buttons_from_state(self):
+        """Memaksa warna background tombol mengikuti nilai di dalam bg_var saat switch target gambar."""
+        for inp in self.sticker_inputs:
+            current_hex = inp["bg_var"].get()
+            if current_hex.startswith("#") and len(current_hex) == 7:
+                inp["color_btn"].config(bg=current_hex)
+
     def sync_stickers_and_refresh(self):
         """Extracts text inputs directly from multi-line text areas cleanly."""
         self.active_stickers = []
         for inp in self.sticker_inputs:
-            # 1.0 to end-1c grabs text starting from row 1/char 0 while stripping Tkinter's internal extra blank line break
             text_raw = inp["text_widget"].get("1.0", "end-1c").strip()
             bg_color = inp["bg_var"].get().strip()
             
@@ -221,6 +273,9 @@ class UnifiedWorkspace:
         btn_exp = tk.Button(actions_panel, text="Export", command=lambda: self.cbs["save_single"](item_id), bg=COLOR_SUCCESS, fg="white", font=("Arial", 9, "bold"), bd=0, padx=6, pady=3, state="disabled", cursor="hand2")
         btn_exp.pack(side=tk.LEFT, padx=2)
 
+        btn_del = tk.Button(actions_panel, text="X", command=lambda: self.cbs["delete"](item_id), bg="#c0392b", fg="white", font=("Arial", 9, "bold"), bd=0, padx=8, pady=3, cursor="hand2")
+        btn_del.pack(side=tk.LEFT, padx=2)
+
         self.row_widgets[item_id] = {
             "frame": row_frame,
             "status_lbl": lbl_status,
@@ -257,6 +312,10 @@ class UnifiedWorkspace:
         self.ratio_var.set(data_dict["ratio"])
         self.bg_var.set(data_dict["background"])
         self.center_var.set(data_dict["centering"])
+        
+        canvas_hex = data_dict.get("bg_color_hex", "#ffffff")
+        self.bg_color_hex.set(canvas_hex)
+        self.btn_bg_color.config(bg=canvas_hex)
 
         # 3. Load marketplace branding elements into view
         stickers_list = data_dict["stickers"]
@@ -276,6 +335,10 @@ class UnifiedWorkspace:
         self._bind_traces()
         for inp in self.sticker_inputs:
             inp["text_widget"].bind("<KeyRelease>", lambda event: self.sync_stickers_and_refresh())
+            
+        # Evaluasi visibilitas tombol warna studio & sinkronisasi warna tombol stiker
+        self._on_bg_style_changed()
+        self.update_color_buttons_from_state()
 
     def update_item_row_state(self, item_id, status_text, state_mode="ready"):
         if item_id not in self.row_widgets: return
@@ -286,7 +349,7 @@ class UnifiedWorkspace:
             wdg["btn_proc"].config(state="disabled", bg="#bdc3c7")
         elif state_mode == "completed":
             wdg["status_lbl"].config(text=status_text, fg="#27ae60", font=FONT_REGULAR)
-            wdg["btn_proc"].config(text="Re-Bake", state="normal", bg="#34495e")
+            wdg["btn_proc"].config(text="Proses Lagi", state="normal", bg="#34495e")
             wdg["btn_exp"].config(state="normal", bg=COLOR_SUCCESS)
         elif state_mode == "failed":
             wdg["status_lbl"].config(text=status_text, fg="#c0392b", font=FONT_REGULAR)

@@ -1,12 +1,22 @@
 # core/training/train.py
 import os
+import sys
+
+# =========================================================================
+# PATH FIX: Menambahkan direktori root proyek ke dalam pencarian path Python
+# Mundur 2 tingkat dari lokasi file ini (dari training -> core -> root proyek)
+# =========================================================================
+root_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+if root_path not in sys.path:
+    sys.path.insert(0, root_path)
+
 import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader
 from torchvision.utils import save_image
 
-# Import komponen yang sudah kita validasi sebelumnya
+# Import komponen lokal yang sekarang aman dipanggil dari mana saja
 from core.training.dataset_loader import LOLDataset
 from core.models.enhancement_net import SimpleEnhanceUNet
 

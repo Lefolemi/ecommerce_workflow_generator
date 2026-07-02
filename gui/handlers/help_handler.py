@@ -7,12 +7,12 @@ class MenuHelpHandler:
     @staticmethod
     def show_instructions():
         """
-        Membuka jendela panduan grafis modern (Toplevel) dengan tata letak 
-        berbasis kartu untuk membimbing pengguna mengoperasikan Studio EcoImage.
+        Membuka jendela panduan grafis operasional berbasis kartu untuk 
+        membimbing pengguna mengoperasikan fitur-fitur antarmuka EcoImage.
         """
         # 1. Inisialisasi Window Bantuan
         help_win = tk.Toplevel()
-        help_win.title("Panduan Operasional & Fitur Studio EcoImage")
+        help_win.title("Panduan Penggunaan Aplikasi Studio EcoImage")
         help_win.geometry("850x650")
         help_win.configure(bg=BG_MAIN)
         help_win.transient() # Mengunci posisi di atas window utama
@@ -25,7 +25,7 @@ class MenuHelpHandler:
         
         tk.Label(
             header_frame, 
-            text="📖 PANDUAN FITUR & ALUR KERJA STUDIO", 
+            text="📖 PANDUAN LANGKAH OPERASIONAL APLIKASI", 
             font=FONT_TITLE, 
             fg=TEXT_LIGHT, 
             bg=BG_DARK, 
@@ -33,7 +33,7 @@ class MenuHelpHandler:
             pady=20
         ).pack(side=tk.LEFT)
 
-        # 3. Konten Utama Menggunakan Canvas + Scrollbar agar Fleksibel
+        # 3. Konten Utama Menggunakan Canvas + Scrollbar
         container = tk.Frame(help_win, bg=BG_MAIN)
         container.pack(fill=tk.BOTH, expand=True, padx=15, pady=15)
         
@@ -61,17 +61,17 @@ class MenuHelpHandler:
             title_line.pack(fill=tk.X, pady=(0, 5))
             
             # Nomor Langkah / Badge
-            lbl_step = tk.Label(title_line, text=f"Langkah {step_num}", font=FONT_SECTION, fg=TEXT_LIGHT, bg=color_accent, padx=8, pady=2)
-            lbl_step.pack(side=tk.LEFT, padx=(0, 10))
+            lbl_step = tk.Label(parent, text=f"Langkah {step_num}", font=FONT_SECTION, fg=TEXT_LIGHT, bg=color_accent, padx=8, pady=2)
+            lbl_step.pack(in_=title_line, side=tk.LEFT, padx=(0, 10))
             
             # Judul Fitur
-            lbl_title = tk.Label(title_line, text=title, font=FONT_SECTION, fg=TEXT_DARK, bg=BG_CARD)
-            lbl_title.pack(side=tk.LEFT)
+            lbl_title = tk.Label(parent, text=title, font=FONT_SECTION, fg=TEXT_DARK, bg=BG_CARD)
+            lbl_title.pack(in_=title_line, side=tk.LEFT)
             
-            # Badge Indikator AI / Status
+            # Badge Indikator Status
             if badge_text:
-                lbl_badge = tk.Label(title_line, text=badge_text, font=("Arial", 8, "bold"), fg=color_accent, bg=BG_MAIN, padx=6, pady=1, bd=1, relief="groove")
-                lbl_badge.pack(side=tk.RIGHT)
+                lbl_badge = tk.Label(parent, text=badge_text, font=("Arial", 8, "bold"), fg=color_accent, bg=BG_MAIN, padx=6, pady=1, bd=1, relief="groove")
+                lbl_badge.pack(in_=title_line, side=tk.RIGHT)
                 
             # Garis Pembatas Internal Kartu
             divider = tk.Frame(card, height=1, bg=BG_MAIN)
@@ -81,61 +81,64 @@ class MenuHelpHandler:
             lbl_desc = tk.Label(card, text=desc_text, font=FONT_REGULAR, fg=TEXT_DARK, bg=BG_CARD, justify=tk.LEFT, anchor="w", wraplength=750)
             lbl_desc.pack(fill=tk.X)
 
-        # 4. KARTU 1: PIPELINE RESTORASI OTOMATIS
+        # KARTU 1: IMPORT & VALIDASI ANTREAN
         create_guide_card(
             scrollable_frame,
             step_num="1",
-            title="Suntik Data & Antrean Foto Produk",
-            badge_text="⚡ AUTOMATIC BLENDING AI",
-            desc_text="• Ambil File: Tekan '📁 Ambil Foto' atau langsung seret (Drag & Drop) folder berisi banyak gambar ke area Workspace.\n"
-                      "• Restorasi Kecerahan Adaptif: Sistem otomatis membaca histogram Luminance gambar masukan. Jika foto terdeteksi redup/gelap, mesin berbasis LOL Dataset akan langsung melakukan pencampuran cahaya (Alpha Blending) secara otomatis agar detail produk muncul sebelum latar belakang dipotong murni.\n"
-                      "• Penghematan RAM: Gambar di atas 1024px otomatis diturunkan skalanya via Lanczos Resampling demi mencegah memory leak.",
+            title="Memasukkan Gambar & Sistem Validasi Otomatis",
+            badge_text="📥 INPUT FILE",
+            desc_text="• Menambahkan Foto: Klik tombol biru '📁 Ambil Foto' di panel kiri untuk memilih gambar produk dari komputer Anda, atau seret langsung file/folder ke kotak abu-abu 'Seret & Lepas'.\n"
+                      "• Proteksi Gambar Latar: Aplikasi hanya menerima gambar yang memiliki objek produk jelas. Jika Anda memasukkan gambar pemandangan atau ruangan kosong, sistem akan menampilkan status gagal (❌) dan menghapus gambar tersebut dari daftar secara otomatis dalam 2 detik.\n"
+                      "• Manajemen Antrean: Anda dapat menghapus foto mana saja dari daftar kapan saja dengan mengklik tombol merah 'X' di sebelah nama file.",
             color_accent=COLOR_PRIMARY
         )
 
-        # 5. KARTU 2: SEGMENTASI OBJEK
+        # KARTU 2: RENDER & PRATINJAU
         create_guide_card(
             scrollable_frame,
             step_num="2",
-            title="Eksekusi Pemotongan Latar AI (U2-Net)",
-            badge_text="🧠 DEEP LEARNING SEGMENTATION",
-            desc_text="• Eksekusi Pipeline: Klik tombol 'Proses' di baris file untuk memicu inferensi gambar tunggal, atau tombol '🚀 Proses Semua' untuk eksekusi antrean asinkron (Batch Worker).\n"
-                      "• Asynchronous Threading: Proses kalkulasi AI berjalan di latar belakang (background thread) sehingga interface desktop Anda tidak akan membeku (Not Responding).\n"
-                      "• Cache Memory: Hasil transparan RGBA disimpan dalam RAM sementara murni agar Live Refresh berjalan instan saat Anda mengubah elemen desain di panel kanan.",
+            title="Memproses Gambar & Melihat Hasil Sementara",
+            badge_text="⚙️ WORKSPACE PREVIEW",
+            desc_text="• Memulai Proses: Klik tombol biru 'Proses' di baris file untuk memotong latar belakang satu foto, atau klik tombol ungu '🚀 Proses Semua' untuk memproses seluruh gambar sekaligus.\n"
+                      "• Navigasi Foto: Klik pada nama file gambar di panel antrean kiri untuk memunculkan pratinjau hasil editannya di Layar Monitor Utama.\n"
+                      "• Live Editing: Layar monitor tengah akan memperbarui tampilan secara instan setiap kali Anda mengubah pengaturan desain stiker atau warna di panel sebelah kanan.",
             color_accent=COLOR_BATCH
         )
 
-        # 6. KARTU 3: STUDIO DESAIN
+        # KARTU 3: ATUR LATAR
         create_guide_card(
             scrollable_frame,
             step_num="3",
-            title="Kustomisasi Latar Belakang & Bayangan Studio",
-            badge_text="🎨 GEOMETRY ENGINE",
-            desc_text="• Bentuk Ukuran Kanvas: Ubah rasio aspek gambar katalog pada Tab Latar (Rasio 1:1 direkomendasikan penuh untuk Shopee & Tokopedia).\n"
-                      "• Posisikan Tengah Pas (Image Moments): Jika aktif, posisi produk ditaruh seimbang berdasarkan pusat massa sebaran piksel objek, bukan sekadar tengah matematis kotak.\n"
-                      "• Drop Shadow Realistis: Efek bayangan jatuh otomatis digenerasikan dari siluet asli channel alpha produk dengan kepekatan opasitas 40% murni apabila Anda memilih kustom suasana latar ruangan.",
+            title="Mengatur Ukuran, Posisi, dan Suasana Latar Belakang",
+            badge_text="🖼️ TAB ATUR LATAR",
+            desc_text="• Ketajaman & Rasio: Tentukan dimensi piksel akhir gambar pada kolom Spinbox, lalu pilih format bentuk kanvas (Rasio 1:1 direkomendasikan untuk marketplace).\n"
+                      "• Opsi Bersih Studio: Jika memilih 'Bersih Studio', sebuah kotak pilihan warna akan muncul di bawahnya. Klik tombol kotak tersebut untuk membuka panel warna bawaan sistem untuk menentukan warna background dasar katalog.\n"
+                      "• Opsi Kustom Gambar Latar: Pilih opsi 'Kustom Gambar Latar...' pada menu turun jika ingin menggunakan file gambar dekorasi ruangan Anda sendiri sebagai background.\n"
+                      "• Centering Otomatis: Centang kotak 'Posisikan Otomatis di Tengah Pas' agar produk ditaruh seimbang berdasarkan pusat massa objek fisik produk.",
             color_accent="#e67e22"
         )
 
-        # 7. KARTU 4: BRANDING ELEMEN
+        # KARTU 4: BRANDING ELEMEN
         create_guide_card(
             scrollable_frame,
             step_num="4",
-            title="Konfigurasi Label Stiker & Proteksi Hak Cipta",
-            badge_text="🏷️ MARKETPLACE DESIGNS",
-            desc_text="• Stiker Promo Kotak (Maksimal 3): Masukkan teks diskon komersial (Mendukung baris baru / Enter). Lebar kotak luar dan dalam (wireframe) akan menyamakan skala secara otomatis (Unified Stack Block) berdasarkan teks terpanjang.\n"
-                      "• Watermark Toko: Ketik nama toko Anda untuk menstempel hak cipta di sudut kiri bawah kanvas. Dilengkapi dengan panel backing abu-abu semi-transparan (Opacity 40%) agar teks tetap terbaca tajam di jenis latar apa pun.",
+            title="Memasang Stiker Promo dan Watermark Toko",
+            badge_text="🏷️ TAB ELEMEN BRAND",
+            desc_text="• Mengisi Stiker (Maksimal 3): Ketik teks diskon atau info komersial pada kotak teks (mendukung baris baru/Enter). Stiker tidak akan muncul di gambar jika kotak teks dibiarkan kosong.\n"
+                      "• Memilih Warna Stiker: Klik tombol kotak warna di samping kanan kolom teks stiker untuk membuka palet warna penentu warna background label promo.\n"
+                      "• Watermark Hak Cipta: Ketik nama toko Anda pada kolom terbawah untuk menempelkan teks kepemilikan di sudut kiri bawah gambar secara otomatis.\n"
+                      "• Pembersihan Massal: Klik tombol jingga 'Bersihkan Semua Kolom Tulisan' untuk mengosongkan seluruh input teks stiker dan watermark secara instan.",
             color_accent="#34495e"
         )
 
-        # 8. KARTU 5: MANAJEMEN EKSPOR
+        # KARTU 5: MANAGEMENT EXPORT
         create_guide_card(
             scrollable_frame,
             step_num="5",
-            title="Penyimpanan Akhir & Ekspor Massal Archive",
-            badge_text="💾 PRODUCTION FINISHING",
-            desc_text="• Ekspor Tunggal: Klik tombol 'Export' di samping nama file untuk menyimpan satu gambar katalog dalam format JPEG kualitas tinggi 95% murni.\n"
-                      "• Ekspor Massal (ZIP): Klik tombol hijau besar '💾 SIMPAN SEMUA HASIL EKSPOR'. Seluruh matriks gambar berstatus selesai akan dikompresi langsung di dalam buffer RAM murni menjadi satu file arsip .zip tunggal tanpa mengotori ruang penyimpanan lokal komputer Anda.",
+            title="Menyimpan Hasil Pengeditan Katalog Produk",
+            badge_text="💾 FINISHING & EXPORT",
+            desc_text="• Ekspor Satu Berkas: Klik tombol hijau 'Export' di samping nama file pada antrean kiri untuk menyimpan gambar yang aktif dalam format JPEG berkualitas tinggi.\n"
+                      "• Ekspor Massal Sekaligus: Klik tombol hijau besar '💾 SIMPAN SEMUA HASIL EKSPOR' di bagian bawah panel antrean untuk membungkus seluruh gambar yang berstatus selesai (✨ Selesai) ke dalam satu file arsip kompresi .zip tunggal.",
             color_accent=COLOR_SUCCESS
         )
 

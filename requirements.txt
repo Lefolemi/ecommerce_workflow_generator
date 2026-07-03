@@ -1,18 +1,31 @@
 # ====================================================================
-# EcoImage Core Dependencies
+# EcoImage Core Dependencies (Environment Freeze)
 # ====================================================================
 
-# Computer Vision & Data Manipulation
-opencv-python>=4.8.0
-numpy>=1.24.0
-Pillow>=10.0.0
+# Computer Vision, Imaging & Data Manipulation
+opencv-python==4.13.0.92
+numpy==2.4.6
+pillow==12.2.0
+
+# Plotting & Visualization Graphics
+matplotlib==3.11.0
+fonttools==4.63.0
+kiwisolver==1.5.0
+cycler==0.12.1
+pyparsing==3.3.2
+
+# Deep Learning Frameworks (Low-Light & Segmentation Model)
+torch==2.12.1
+torchvision==0.27.1
 
 # AI Background Removal Pipeline (U2-Net)
-rembg>=2.0.50
-onnxruntime>=1.16.0
+rembg==2.0.75
+onnxruntime==1.26.0
+protobuf==7.35.0
 
 # GUI Extensions
-tkinterdnd2>=0.3.0
+tkinterdnd2==0.4.3
 
-torch
-torchvision
+# Utilities & Shared Extras
+tqdm==4.67.3
+filelock==3.29.4

@@ -29,7 +29,7 @@ def run_validation_experiment():
     # Jalankan eksperimen uji coba fungsi
     res_flat, reason_flat = validate_contains_object(flat_bg)
     res_prod, reason_prod = validate_contains_object(product_mock_img)
-    
+
     print("\n🎉 === HASIL SKENARIO VALIDASI CITRA ===")
     print(f"📋 Kasus 1 (Latar Polos)  -> Terdeteksi Valid: {res_flat} | Alasan: {reason_flat}")
     print(f"📋 Kasus 2 (Citra Produk) -> Terdeteksi Valid: {res_prod} | Alasan: {reason_prod}")
